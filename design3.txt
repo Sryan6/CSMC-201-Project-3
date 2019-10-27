@@ -1,0 +1,303 @@
+# File:    design3.txt
+# Author:  Steven Ryan
+# Date:    12/1/18
+# Section: 34
+# E-mail:  sryan6@umbc.edu
+# Description:
+#    design for a pogram that plays a game of sudoku and solves it
+
+# Constants:
+BOARD_LENGTH = 9
+PLAY = "p"
+SOLVE = "s"
+SAVE = "s"
+UNDO = "u"
+QUIT = "q"
+YES = "y"
+NO = "n"
+#bounds for checking squares in solve function
+ROW_COLUMN_1 = 2
+ROW_COLUMN_2 = 5
+ROW_COLUMN_3 = 8
+#list to refresh my possible values list for every column
+VALUE_LIST = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+#more constants for the solve function
+ELIMINATION = 4
+DEEP_COPY_CONSTANT = 2
+
+# prettyPrint() prints the board with row and column labels,
+#               and spaces the board out so that it looks nice
+# Input:        board;   the square 2d game board (of integers) to print
+# Output:       None;    prints the board in a pretty way
+
+# savePuzzle() writes the contents a sudoku puzzle out
+#              to a file in comma separated format
+# Input:       board;    the square 2d puzzle (of integers) to write to a file
+# Output:      fileName; the name of the file to use for writing to 
+
+# readFile() reads the file line by line and places it into a list
+# 
+# Input:     fileName; the name of the file to read
+# Output:    board; the 2d list to append with the values
+
+# solve() creates a solution for the board
+# 
+# Input:  board; a 2d list to solve.
+#         row; the current row. col; the current column
+# Output: newboard; the solved board
+
+# castInt() casts a list of values as integers
+# 
+# Input:  board; a 2d list to solve.
+# Output: board; the solved board
+
+# validateNumber() makes sure a number is not ruled out as an option
+# 
+# Input:  board; the board to play with, num; the number to manipulate
+#         row; the row to test, col; the column to test
+# Output: valid; a boolean that says whether it's valid or not
+
+# removeNumber() removes a number from the board
+#
+# Input:  board; the 2d list of values, row; the row to remove from, 
+#         col; the column to remove from
+# Output: board; returns the updated board
+
+# checkCorrectness() compares the suggested number to the solution
+# 
+# Input:  row; the suggested row, col; the suggested column,
+#         num; the number to check,
+#         solution; the solution 2d list to compare to
+# Output: correct; a boolean that declares whether the suggested
+#         value is right or not
+
+# createDeepCopy() creates a deep copy of a 2d list
+# 
+# Input:  list2d; the list that will be made into a deep copy
+# Output: deepList; the newly created 2d list deep copy
+
+# checkIfProgramEnd() ends program when correctness checking is
+#                     off and the puzzle matches the solution.
+# Input:  board; the user's 2d list, solution; the solution
+#         to compare the board to.
+# Output: exitflag; the boolean flag that will end the program.
+
+def main():
+    fileName = input("Enter the filename of the Sudoku Puzzle: ")
+    board = readFile(fileName)
+    # Casts each of the individual values of the list as integers
+    board = castInt(board)
+    prettyPrint(board)
+    decision = input("play (p) or solve (s)? ")
+    while(decision != PLAY and decision != SOLVE):
+        print("please enter a 'p' or an 's'.")
+        decision = input("play (p) or solve (s)? ")
+    #if the player decides to solve the puzzle
+    if(decision == SOLVE):
+        solve(board, 0, 0)
+        print("Solved board: ")
+        prettyPrint(board)
+    #if the player decides to play the game
+    elif(decision == PLAY):
+        correctCheck = input("correctness checking? (y/n) ")
+        while(correctCheck != YES and correctCheck != NO):
+            print("Try typing a 'y' or a 'n' this time")
+            correctCheck = input("correctness checking? (y/n) ")
+
+        #if correctness checking is on
+        if(correctCheck == YES):
+            moveList = []
+            solution = readFile(fileName)
+            # Casts each of the individual values of the list as integers
+            solution = castInt(solution)
+            solve(solution, 0, 0)
+            exitFlag = False
+            while(exitFlag != True):
+                choice = input("play number (p), save(s), undo (u), quit (q): ") 
+                while(choice != PLAY and choice != SAVE and
+                      choice != UNDO and choice != QUIT):
+                    print("please choose one of the correct options")
+                    print("play number (p),", end = "")
+                    choice = input(" save(s), undo (u), quit (q): ")
+                
+                if(choice == PLAY):
+                    row = int(input("Enter a row number (1-9): "))
+                    col = int(input("Enter a column number (1-9): "))
+                    row -= 1
+                    col -= 1
+                    #checks if the cell is already occupied
+                    while(board[row][col] != 0):
+                        print("This cell has a number in it. Try again")
+                        row = int(input("Enter a row number (1-9): "))
+                        col = int(input("Enter a column number (1-9): "))
+                        row -= 1
+                        col -= 1
+                    print("Enter a number to put in cell (" + str(row + 1)\
+                          + ", " + str(col + 1) + ")", end = "")
+                    num = int(input(": "))
+                    validNum = validateNumber(board, num, row, col)
+                    while(validNum == False):
+                        print("Not a valid number, try again")
+                        row = int(input("Enter a row number (1-9): "))
+                        col = int(input("Enter a column number (1-9): "))
+                        row -= 1
+                        col -= 1
+                        #checks if the cell is already occupied
+                        while(board[row][col] != 0):
+                            print("This cell already has a number in it."\
+                                  "Try again")
+                            row = int(input("Enter a row number (1-9): "))
+                            col = int(input("Enter a column number (1-9): "))
+                            row -= 1
+                            col -= 1
+                        print("Enter a number to put in cell (" + str(row + 1)\
+                              + ", " + str(col + 1) + ")", end = "")
+                        num = int(input(": "))
+                        validNum = validateNumber(board, num, row, col)
+                    #correctness section
+                    correctness = checkCorrectness(solution, num, row, col)
+                    while(correctness == False):
+                        print("That number is not correct")
+                        print("Try again")
+                        row = int(input("Enter a row number (1-9): "))
+                        col = int(input("Enter a column number (1-9): "))
+                        row -= 1
+                        col -= 1
+                        #checks if the cell is already occupied
+                        while(board[row][col] != 0):
+                            print("This cell already has a number", end = "")
+                            print("in it. Try again")
+                            row = int(input("Enter a row number (1-9): "))
+                            col = int(input("Enter a column number (1-9): "))
+                            row -= 1
+                            col -= 1
+                        print("Enter a number to put in cell (" + str(row + 1)\
+                              + ", " + str(col + 1) + ")", end = "")
+                        num = int(input(": "))
+                        validNum = validateNumber(board, num, row, col)
+                        while(validNum == False):
+                            print("Not a valid number, try again")
+                            row = int(input("Enter a row number (1-9): "))
+                            col = int(input("Enter a column number (1-9): "))
+                            row -= 1
+                            col -= 1
+                            #checks if the cell is already occupied
+                            while(board[row][col] != 0):
+                                print("This cell already has a ", end = "")
+                                print("number in it. Try again")
+                                row = int(input("Enter a row (1-9): "))
+                                col = int(input("Enter a column (1-9): "))
+                                row -= 1
+                                col -= 1
+                            print("Enter a number to put in cell (" + str(row + 1)\
+                                  + ", " + str(col + 1) + ")", end = "")
+                            num = int(input(": "))
+                            validNum = validateNumber(board, num, row, col)
+                        correctness = checkCorrectness(solution, num, row, col)
+                    #end correctness section
+                    board[row][col] = num
+                    moveList.append([row, col, num])
+                    
+                elif(choice == SAVE):
+                    print("What would you like ", end = "")
+                    saveFileName = input("the file name to be? ")
+                    savePuzzle(board, saveFileName)
+                elif(choice == UNDO):
+                    if(len(moveList) == 0):
+                        print("There is nothing to undo")
+                    else:
+                        print("removing number", moveList[len(moveList) - 1]\
+                              [DEEP_COPY_CONSTANT], "from (", end = "")
+                        print(moveList[len(moveList) - 1][0], end = "")
+                        print(",", moveList[len(moveList) - 1][1], end = "")
+                        print(")")
+                        board = removeNumber(board,
+                                             moveList[len(moveList) - 1][0],
+                                             moveList[len(moveList) - 1][1])
+                        moveList = moveList[:len(moveList) -
+                                            DEEP_COPY_CONSTANT]
+                        
+                elif(choice == QUIT):
+                    print("Good bye! Here is the final board:")
+                    prettyPrint(board)
+                    exitFlag = True
+
+                if(choice != QUIT):
+                    exitFlag = True 
+                    for y in range(0, len(board)):
+                        for t in range(0, len(board[y])):
+                            if(board[y][t] != solution[y][t]):
+                                exitFlag = False
+        #if correctness checking is off
+        elif(correctCheck == NO):
+            moveList = []
+            solution = readFile(fileName)
+            # Casts each of the individual values of the list as integers
+            solution = castInt(solution)
+            solve(solution, 0, 0)
+            exitFlag = False
+            while(exitFlag != True):
+                choice = input("play number (p), save(s), undo (u), quit (q): ") 
+                while(choice != PLAY and choice != SAVE and
+                      choice != UNDO and choice != QUIT):
+                    print("please choose one of the correct options")
+                    print("play number (p),", end = "")
+                    choice = input(" save(s), undo (u), quit (q): ")
+                
+                if(choice == PLAY):
+                    row = int(input("Enter a row number (1-9): "))
+                    col = int(input("Enter a column number (1-9): "))
+                    #checks if the cell is already occupied
+                    while(board[row][col] != 0):
+                        print("This cell has a number in it. Try again")
+                        row = int(input("Enter a row number (1-9): "))
+                        col = int(input("Enter a column number (1-9): "))
+                    print("Enter a number to put in cell (" + row + ", "\
+                          + col + ")")
+                    num = int(input(": "))
+                    validNum = validateNumber(board, num, row, col)
+                    while(validNum == False):
+                        print("Not a valid number, try again")
+                        row = int(input("Enter a row number (1-9): "))
+                        col = int(input("Enter a column number (1-9): "))
+                        #checks if the cell is already occupied
+                        while(board[row][col] != 0):
+                            print("This cell already has a number in it."\
+                                  "Try again")
+                            row = int(input("Enter a row number (1-9): "))
+                            col = int(input("Enter a column number (1-9): "))
+                        print("Enter a number to put in cell (" + row + ", "\
+                              + col + ")")
+                        num = int(input(": "))
+                        validNum = validateNumber(board, num, row, col)
+                    
+                    board[row][col] = num
+                    moveList.append([row, col, num])
+                    
+                elif(choice == SAVE):
+                    print("What would you like ", end = "")
+                    saveFileName = input("the file name to be? ")
+                    savePuzzle(board, saveFileName)
+                elif(choice == UNDO):
+                    if(len(moveList) == 0):
+                        print("There is nothing to undo")
+                    else:
+                        print("removing number", moveList[len(moveList) - 1]\
+                              [DEEP_COPY_CONSTANT], "from (", end = "")
+                        print(moveList[len(moveList) - 1][0], end = "")
+                        print(",", moveList[len(moveList) - 1][1], end = "")
+                        print(")")
+                        board = removeNumber(board,
+                                             moveList[len(moveList) - 1][0],
+                                             moveList[len(moveList) - 1][1])
+                        moveList = moveList[:len(moveList) -
+                                            DEEP_COPY_CONSTANT]
+                        
+                elif(choice == QUIT):
+                    print("Good bye! Here is the final board:")
+                    prettyPrint(board)
+                    exitFlag = True
+
+                if(choice != QUIT):
+                    exitFlag = checkIfProgramEnd()
+main()
